@@ -1,0 +1,81 @@
+{
+    "Routes": [
+      {
+        "DownstreamPathTemplate": "/api/auth/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "user-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/api/auth/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+      },
+      {
+        "DownstreamPathTemplate": "/api/products/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "product-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/api/products/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+      },
+      {
+        "DownstreamPathTemplate": "/api/cart/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "cart-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/api/cart/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+      },
+      {
+        "DownstreamPathTemplate": "/api/orders/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "order-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/api/orders/{everything}",
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+      },
+      {
+        "DownstreamPathTemplate": "/health",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "user-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/health/user",
+        "UpstreamHttpMethod": [ "GET" ]
+      },
+      {
+        "DownstreamPathTemplate": "/health",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "product-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/health/product",
+        "UpstreamHttpMethod": [ "GET" ]
+      },
+      {
+        "DownstreamPathTemplate": "/health",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "cart-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/health/cart",
+        "UpstreamHttpMethod": [ "GET" ]
+      },
+      {
+        "DownstreamPathTemplate": "/health",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "order-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/health/order",
+        "UpstreamHttpMethod": [ "GET" ]
+      }
+    ],
+    "GlobalConfiguration": {
+      "BaseUrl": "http://api-gateway:80"
+    }
+
+    
+  }
