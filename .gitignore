@@ -1,3 +1,65 @@
-# .gitignore
+# Environment Variables
 .env
 *.env
+
+# .NET Build Output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dbmdl
+*.dbproj.schemaview
+*.pfx
+*.publishsettings
+
+# IDE
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Database files
+*.mdf
+*.ldf
+*.ndf
+
+# Others
+[Tt]emp/
+[Tt]mp/
+*.tmp
+*.bak
+*.cache
+*.swp
+*~
+node_modules/
+.DS_Store
+Thumbs.db
