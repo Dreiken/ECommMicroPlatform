@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace UserService.Data;
-public class AppDbContext : IdentityDbContext<
-    AppilcationUser,
+public class UserContext : IdentityDbContext<
+    ApplicationUser,
     ApplicationRole,
     Guid,
     ApplicationUserClaim,
@@ -16,7 +16,7 @@ public class AppDbContext : IdentityDbContext<
     
 >
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) 
+    public UserContext(DbContextOptions<UserContext> options) 
         : base(options)
     {
     }
@@ -24,7 +24,7 @@ public class AppDbContext : IdentityDbContext<
     {
         base.OnModelCreating(builder);
 
-        builder.Entity<AppilcationUser>().ToTable("Users");
+        builder.Entity<ApplicationUser>().ToTable("Users");
         builder.Entity<ApplicationRole>().ToTable("Roles");
         builder.Entity<ApplicationUserClaim>().ToTable("UserClaims");
         builder.Entity<ApplicationUserLogin>().ToTable("UserLogins");

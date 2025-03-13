@@ -6,10 +6,13 @@ using UserService.Data;
 using Microsoft.IdentityModel.Tokens;
 using UserService.Models;
 using DotNetEnv;
+using UserService.Services;
+using UserService.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHealthChecks();
+
 
 // Get database password from env variables
 Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
@@ -21,16 +24,18 @@ var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
 var jwtAudience = builder.Configuration["Jwt:Audience"]!;
 
 // Configure SQL Server
-builder.Services.AddDbContext<AppDbContext>(options => 
+builder.Services.AddDbContext<UserContext>(options => 
     options.UseSqlServer(connectionString));
 
 // Add Identity
-builder.Services.AddIdentity<AppilcationUser, ApplicationRole>(options => {
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => {
     options.Password.RequireDigit = true;
     options.Password.RequiredLength = 8;
 })
-.AddEntityFrameworkStores<AppDbContext>()
+.AddEntityFrameworkStores<UserContext>()
 .AddDefaultTokenProviders();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 
 // Configure JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
