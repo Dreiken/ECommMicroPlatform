@@ -74,33 +74,8 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
-        NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
-        RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-    };
-
-    options.Events = new JwtBearerEvents
-    {
-        OnTokenValidated = context =>
-        {
-            var claims = context.Principal?.Claims.Select(c => new { c.Type, c.Value });
-            Console.WriteLine($"UserService - Token validated. Claims: {System.Text.Json.JsonSerializer.Serialize(claims)}");
-            return Task.CompletedTask;
-        },
-        OnAuthenticationFailed = context =>
-        {
-            Console.WriteLine($"UserService - Authentication failed: {context.Exception.Message}");
-            if (context.Exception.InnerException != null)
-            {
-                Console.WriteLine($"Inner exception: {context.Exception.InnerException.Message}");
-            }
-            return Task.CompletedTask;
-        },
-        OnMessageReceived = context =>
-        {
-            var accessToken = context.Request.Headers["Authorization"].ToString()?.Replace("Bearer ", "");
-            Console.WriteLine($"UserService - Received token: {accessToken}");
-            return Task.CompletedTask;
-        }
+        RoleClaimType = ClaimTypes.Role,
+        NameClaimType = ClaimTypes.NameIdentifier
     };
 });
 
@@ -133,24 +108,5 @@ catch (Exception ex)
     logger.LogError(ex, "An error occurred while migrating the database");
     throw;
 }
-
-//test middleware
-app.Use(async (context, next) =>
-{
-    Console.WriteLine($"UserService - Request path: {context.Request.Path}");
-    Console.WriteLine($"UserService - Authorization header: {context.Request.Headers["Authorization"]}");
-
-    if (context.User?.Identity?.IsAuthenticated == true)
-    {
-        var claims = context.User.Claims.Select(c => new { c.Type, c.Value }).ToList();
-        Console.WriteLine($"UserService - Authenticated User Claims: {System.Text.Json.JsonSerializer.Serialize(claims)}");
-    }
-    else
-    {
-        Console.WriteLine("UserService - User is not authenticated");
-    }
-
-    await next();
-});
 
 app.Run();

@@ -38,22 +38,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
             ValidateLifetime = true,
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier,
             ClockSkew = TimeSpan.Zero
-        };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnTokenValidated = context =>
-            {
-                var claims = context.Principal?.Claims.Select(c => new { c.Type, c.Value });
-                Console.WriteLine($"Token validated successfully. Claims: {System.Text.Json.JsonSerializer.Serialize(claims)}");
-                return Task.CompletedTask;
-            },
-            OnAuthenticationFailed = context =>
-            {
-                Console.WriteLine($"Authentication failed: {context.Exception.Message}");
-                return Task.CompletedTask;
-            }
         };
     });
 
@@ -69,32 +56,6 @@ var app = builder.Build();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.Use(async (context, next) =>
-{
-    var token = context.Request.Headers["Authorization"].ToString();
-    if (!string.IsNullOrEmpty(token))
-    {
-        Console.WriteLine($"Raw Authorization header: {token}");
-        // Try to clean up the token
-        token = token.Replace("Bearer ", "").Trim();
-        Console.WriteLine($"Cleaned token: {token}");
-    }
-    await next();
-});
-
-// Add debug middleware for authentication status
-app.Use(async (context, next) =>
-{
-    Console.WriteLine($"Request path: {context.Request.Path}");
-    Console.WriteLine($"Is authenticated: {context.User?.Identity?.IsAuthenticated}");
-    if (context.User?.Identity?.IsAuthenticated == true)
-    {
-        var claims = context.User.Claims.Select(c => new { c.Type, c.Value });
-        Console.WriteLine($"User claims: {System.Text.Json.JsonSerializer.Serialize(claims)}");
-    }
-    await next();
-});
 
 await app.UseOcelot();
 

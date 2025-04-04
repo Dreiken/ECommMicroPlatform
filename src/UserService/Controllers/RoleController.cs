@@ -157,11 +157,11 @@ public class RoleController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> AssignRoleToUser(Guid userId, [FromBody] string roleName)
+    public async Task<IActionResult> AssignRoleToUser(Guid userId, [FromBody] AssignRoleDto dto)
     {
         try
         {
-            var (succeeded, errors) = await _roleService.AssignRoleToUserAsync(userId, roleName);
+            var (succeeded, errors) = await _roleService.AssignRoleToUserAsync(userId, dto.Name);
             
             if (!succeeded)
             {
@@ -173,7 +173,7 @@ public class RoleController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while assigning role {RoleName} to user {UserId}", 
-                roleName, userId);
+                dto.Name, userId);
             return StatusCode(500, "An error occurred while assigning the role");
         }
     }
