@@ -23,7 +23,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = RoleConstants.User)]
+    [Authorize(Roles = RoleConstants.Admin)]
     [ProducesResponseType(typeof(IReadOnlyList<RoleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IReadOnlyList<RoleDto>>> GetAllRoles()
@@ -41,7 +41,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = $"{RoleConstants.Admin},{RoleConstants.User}")]
+    [Authorize(Roles = RoleConstants.Admin)]
     [ProducesResponseType(typeof(RoleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -66,7 +66,7 @@ public class RoleController : ControllerBase
 
 
     [HttpPost]
-    [Authorize(Roles = $"{RoleConstants.Admin},{RoleConstants.User}")]
+    [Authorize(Roles = RoleConstants.Admin)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -92,7 +92,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = $"{RoleConstants.Admin},{RoleConstants.User}")]
+    [Authorize(Roles = RoleConstants.Admin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -123,7 +123,7 @@ public class RoleController : ControllerBase
 
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = $"{RoleConstants.Admin},{RoleConstants.User}")]
+    [Authorize(Roles = RoleConstants.Admin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -152,7 +152,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpPost("users/{userId:guid}/roles")]
-    [Authorize(Roles = $"{RoleConstants.Admin},{RoleConstants.User}")]
+    [Authorize(Roles = RoleConstants.Admin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -179,7 +179,7 @@ public class RoleController : ControllerBase
     }
     
     [HttpGet("users/{userId:guid}/roles")]
-    [Authorize(Roles = $"{RoleConstants.Admin},{RoleConstants.User}")]
+    [Authorize(Roles = RoleConstants.Admin)]
     [ProducesResponseType(typeof(IList<string>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IList<string>>> GetUserRoles(Guid userId)
