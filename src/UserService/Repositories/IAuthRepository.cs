@@ -13,4 +13,6 @@ public interface IAuthRepository
     Task<IList<string>> GetUserRolesAsync(ApplicationUser user);
     
     Task<(bool Succeeded, IEnumerable<string> Errors)> AddToRoleAsync(ApplicationUser user, string role);
+
+    Task<bool> AnyUsersExistAsync();
 }

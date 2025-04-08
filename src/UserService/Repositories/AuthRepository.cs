@@ -120,4 +120,19 @@ public class AuthRepository : IAuthRepository
             throw;
         }
     }
+    public async Task<bool> AnyUsersExistAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Checking if any users exist in the database...");
+            var exists = await _context.Users.AnyAsync();
+            _logger.LogInformation("User exists: {Exists}", exists);
+            return exists;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check if any users exist");
+            throw;
+        }
+    }
 }

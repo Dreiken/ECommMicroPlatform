@@ -30,6 +30,12 @@ public class AuthService : IAuthService
     {
         try
         {
+            _logger.LogInformation("Starting registration process for email: {Email}", dto.Email);
+            // Check if its the first user
+            _logger.LogInformation("Checking if this is the first user...");
+            var isFirstUser = !await _authRepository.AnyUsersExistAsync();
+            _logger.LogInformation("Is first user: {IsFirstUser}", isFirstUser);
+
             var user = new ApplicationUser
             {
                 UserName = dto.Email,
@@ -37,19 +43,35 @@ public class AuthService : IAuthService
                 FullName = dto.FullName
             };
 
+            _logger.LogInformation("Creating user...");
             var (succeeded, errors) = await _authRepository.CreateUserAsync(user, dto.Password);
             if (!succeeded)
             {
+                _logger.LogWarning("User creation failed: {Errors}", string.Join(", ", errors));
                 return (false, null, errors);
             }
 
+            // Add roles based on whether this is the first user
+            if (isFirstUser)
+            {
+                _logger.LogInformation("Adding admin role to first user");
+                var adminRoleResult = await _authRepository.AddToRoleAsync(user, RoleConstants.Admin);
+                if (!adminRoleResult.Succeeded)
+                {
+                    _logger.LogError("Failed to add admin role to first user: {Errors}", 
+                        string.Join(", ", adminRoleResult.Errors));
+                }
+            }
+
             // Add default User role
+            _logger.LogInformation("Adding default user role");
             await _authRepository.AddToRoleAsync(user, RoleConstants.User);
 
             // Get all user roles and generate token
             var userRoles = await _authRepository.GetUserRolesAsync(user);
             var token = await GenerateJwtTokenAsync(user, userRoles);
             
+            _logger.LogInformation("Registration completed successfully for user: {Email}", dto.Email);
             return (true, token, Array.Empty<string>());
         }
         catch (Exception ex)
