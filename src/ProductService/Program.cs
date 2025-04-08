@@ -3,19 +3,32 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using ProductService.Repositories;
+using ProductService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add services
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
+
+
 // Add MongoDB
 var mongoConnection = builder.Configuration.GetConnectionString("ProductDb");
 if (string.IsNullOrEmpty(mongoConnection))
 {
     throw new InvalidOperationException("MongoDB connection string is missing.");
 }
+
 var mongoClient = new MongoClient(mongoConnection);
 var database = mongoClient.GetDatabase("ProductDb");
 builder.Services.AddSingleton(database);
 
-builder.Services.AddOpenApi();
+// Add services
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductService, ProductService.Services.ProductService>();
+
 
 builder.Services.AddHealthChecks()
     .AddMongoDb(
@@ -42,7 +55,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.MapControllers();
 app.UseHttpsRedirection();
+
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>
