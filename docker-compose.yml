@@ -154,6 +154,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__ProductDb=mongodb://mongodb:27017
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=http://user-service
+      - Jwt__Audience=http://api-gateway
     depends_on:
       mongodb:
         condition: service_healthy

@@ -29,6 +29,9 @@
         "AuthenticationOptions": {
           "AuthenticationProviderKey": "Bearer",
           "AllowedScopes": []
+      },
+      "RouteClaimsRequirement": {
+        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": "Admin"
       }
       },
       {
@@ -42,7 +45,19 @@
         "AuthenticationOptions": {
           "AuthenticationProviderKey": "Bearer",
           "AllowedScopes": []
+        },
+        "RouteClaimsRequirement": {
+          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": "Admin"
         }
+      },
+      {
+        "DownstreamPathTemplate": "/api/products",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+          { "Host": "product-service", "Port": 80 }
+        ],
+        "UpstreamPathTemplate": "/api/products",
+        "UpstreamHttpMethod": [ "GET" ]
       },
       {
         "DownstreamPathTemplate": "/api/products/{everything}",
@@ -51,7 +66,14 @@
           { "Host": "product-service", "Port": 80 }
         ],
         "UpstreamPathTemplate": "/api/products/{everything}",
-        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+        "AuthenticationOptions": {
+          "AuthenticationProviderKey": "Bearer",
+          "AllowedScopes": []
+        },
+        "RouteClaimsRequirement": {
+          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": "Admin"
+        }
       },
       {
         "DownstreamPathTemplate": "/api/cart/{everything}",

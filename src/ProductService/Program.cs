@@ -1,10 +1,12 @@
-using System.Text.Json;
+using System.Text;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ProductService.Repositories;
 using ProductService.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +31,28 @@ builder.Services.AddSingleton(database);
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService.Services.ProductService>();
 
+// Add JWT Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"] ?? 
+                    throw new InvalidOperationException("JWT secret not configured"))
+            ),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 
 builder.Services.AddHealthChecks()
     .AddMongoDb(
@@ -40,6 +64,11 @@ builder.Services.AddHealthChecks()
 
 
 var app = builder.Build();
+
+// Configure middleware
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 //test endpoint
 app.MapGet("/api/products/test", async (IMongoDatabase database) =>
