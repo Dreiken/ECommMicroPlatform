@@ -84,6 +84,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__UserDb=Server=sql-server;Database=UserDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=true;
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=http://user-service
+      - Jwt__Audience=http://api-gateway
     depends_on:
       sql-server:
         condition: service_healthy
@@ -102,6 +105,9 @@ services:
       - "5004:80"
     environment:
       - ConnectionStrings__OrderDb=Server=sql-server;Database=OrderDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=true;
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=http://user-service
+      - Jwt__Audience=http://api-gateway
       - ASPNETCORE_URLS=http://+:80
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Username=${RABBITMQ_USER}
@@ -175,12 +181,17 @@ services:
       - microservices-network
 
   api-gateway:
-    build: ./src/ApiGateway
+    build:  
+      context: ./src/ApiGateway
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=http://user-service
+      - Jwt__Audience=http://api-gateway
     depends_on:
       user-service:
         condition: service_healthy
