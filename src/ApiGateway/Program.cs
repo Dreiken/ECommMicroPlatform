@@ -5,11 +5,28 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Logging;
+using Serilog;
+using ApiGateway.Services;
+using ApiGateway.Handlers;
+using ApiGateway.Middleware;
+using Ocelot.Provider.Polly;
 
 IdentityModelEventSource.ShowPII = true;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://*:80");
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .Enrich.WithCorrelationId()
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+builder.Services.AddScoped<ICorrelationIdGenerator, CorrelationIdGenerator>();
+builder.Services.AddTransient<CorrelationIdMiddleware>();
 
 // Validate JWT configuration
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? 
@@ -48,9 +65,14 @@ builder.Services.AddAuthorization();
 
 // Load Ocelot configuration from ocelot.json
 builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
-builder.Services.AddOcelot();
+
+builder.Services.AddOcelot()
+    .AddDelegatingHandler<CircuitBreakerLoggingHandler>()
+    .AddPolly();
 
 var app = builder.Build();
+
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 // Use Ocelot middleware
 app.UseRouting();
