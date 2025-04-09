@@ -10,6 +10,7 @@ using ApiGateway.Services;
 using ApiGateway.Handlers;
 using ApiGateway.Middleware;
 using Ocelot.Provider.Polly;
+using Ocelot.Cache.CacheManager;
 
 IdentityModelEventSource.ShowPII = true;
 
@@ -68,7 +69,11 @@ builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange
 
 builder.Services.AddOcelot()
     .AddDelegatingHandler<CircuitBreakerLoggingHandler>()
-    .AddPolly();
+    .AddPolly()
+    .AddCacheManager(x =>
+    {
+        x.WithDictionaryHandle();
+    });
 
 var app = builder.Build();
 

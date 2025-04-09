@@ -7,7 +7,13 @@
           { "Host": "user-service", "Port": 80 }
         ],
         "UpstreamPathTemplate": "/api/auth/register",
-        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+        "RateLimitOptions": {
+          "EnableRateLimiting": true,
+          "Period": "1s",
+          "PeriodTimespan": 1,
+          "Limit": 3
+        }
       },
       {
         "DownstreamPathTemplate": "/api/auth/login",
@@ -16,7 +22,13 @@
           { "Host": "user-service", "Port": 80 }
         ],
         "UpstreamPathTemplate": "/api/auth/login",
-        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+        "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+        "RateLimitOptions": {
+          "EnableRateLimiting": true,
+          "Period": "1s",
+          "PeriodTimespan": 1,
+          "Limit": 3
+        }
       },
       {
         "DownstreamPathTemplate": "/api/auth/test-token",
@@ -57,7 +69,13 @@
           { "Host": "product-service", "Port": 80 }
         ],
         "UpstreamPathTemplate": "/api/products",
-        "UpstreamHttpMethod": [ "GET" ]
+        "UpstreamHttpMethod": [ "GET" ],
+        "RateLimitOptions": {
+          "EnableRateLimiting": true,
+          "Period": "1s",
+          "PeriodTimespan": 1,
+          "Limit": 3
+        }
       },
       {
         "DownstreamPathTemplate": "/api/products/{everything}",
@@ -142,11 +160,15 @@
             "X-Correlation-ID": "{CorrelationId}"
         },
       "RateLimitOptions": {
+        "ClientIdHeader": "X-ClientId",
         "EnableRateLimiting": true,
         "Period": "1s",
         "PeriodTimespan": 1,
-        "Limit": 3
-      },
+        "Limit": 3,
+        "QuotaExceededMessage": "API rate limit exceeded",
+        "HttpStatusCode": 429,
+        "DisableRateLimitHeaders": false
+    },
       "QoSOptions": {
           "ExceptionsAllowedBeforeBreaking": 3,
           "DurationOfBreak": 5000,

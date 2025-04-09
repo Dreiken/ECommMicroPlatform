@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.1" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.1" />
     <PackageReference Include="Ocelot" Version="23.1.0" />
+    <PackageReference Include="Ocelot.Cache.CacheManager" Version="23.1.0" />
     <PackageReference Include="Ocelot.Provider.Polly" Version="23.1.0" />
     <PackageReference Include="Polly" Version="8.3.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
