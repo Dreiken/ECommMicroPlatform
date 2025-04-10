@@ -8,6 +8,13 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using OrderService.Enums;
+using OrderService.Repositories;
+using OrderService.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +25,8 @@ var config = builder.Configuration;
 Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
 var orderDbConnectionString = builder.Configuration.GetConnectionString("OrderDb")
-    ?.Replace("__DB_PASSWORD__", dbPassword);
+    ?.Replace("__DB_PASSWORD__", dbPassword)
+    ?? throw new InvalidOperationException("OrderDb connection string is not configured");
 
 var rabbitMqUser = Environment.GetEnvironmentVariable("RABBITMQ_USER");
 var rabbitMqPass = Environment.GetEnvironmentVariable("RABBITMQ_PASS");
@@ -49,56 +57,86 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 //Add RabbitMQ
 
-builder.Services.AddSingleton<Task<IConnection>>(async sp =>
-{
-    var logger = sp.GetRequiredService<ILogger<Program>>();
-    var retryCount = 0;
-    const int maxRetries = 10;
-    
-    while (retryCount < maxRetries)
+builder.Services.AddSingleton<IConnection>(sp =>
     {
-        try
+        var logger = sp.GetRequiredService<ILogger<Program>>();
+        var factory = new ConnectionFactory
         {
-            var factory = new ConnectionFactory
-            {
-                HostName = builder.Configuration["RabbitMQ:Host"],
-                UserName = builder.Configuration["RabbitMQ:Username"],
-                Password = builder.Configuration["RabbitMQ:Password"],
-                RequestedHeartbeat = TimeSpan.FromSeconds(60),
-                AutomaticRecoveryEnabled = true,
-                NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
-            };
+            HostName = builder.Configuration["RabbitMQ:Host"],
+            UserName = builder.Configuration["RabbitMQ:Username"],
+            Password = builder.Configuration["RabbitMQ:Password"],
+            RequestedHeartbeat = TimeSpan.FromSeconds(60),
+            AutomaticRecoveryEnabled = true,
+            NetworkRecoveryInterval = TimeSpan.FromSeconds(10),
+            ConsumerDispatchConcurrency = 2
+        };
 
-            logger.LogInformation("Attempting to connect to RabbitMQ (Attempt {RetryCount}/{MaxRetries})", 
-                retryCount + 1, maxRetries);
+        var retryPolicy = Policy
+            .Handle<Exception>()
+            .WaitAndRetry(
+                retryCount: 10,
+                sleepDurationProvider: attemptNumber => 
+                    TimeSpan.FromSeconds(Math.Pow(2, attemptNumber)),
+                onRetry: (exception, timeSpan, retryCount, context) =>
+                {
+                    logger.LogWarning(
+                        exception,
+                        "Failed to connect to RabbitMQ (Attempt {RetryCount}/10). Retrying in {TimeSpan}...",
+                        retryCount,
+                        timeSpan);
+                });
 
-            var connection = await factory.CreateConnectionAsync();
-            logger.LogInformation("Successfully connected to RabbitMQ");
-            return connection;
-        }
-        catch (Exception ex)
+        return retryPolicy.Execute(() =>
         {
-            retryCount++;
-            logger.LogError(ex, "Failed to connect to RabbitMQ (Attempt {RetryCount}/{MaxRetries})", 
-                retryCount, maxRetries);
-
-            if (retryCount >= maxRetries)
+            logger.LogInformation("Attempting to connect to RabbitMQ...");
+            var connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
+            if (connection.IsOpen)
             {
-                logger.LogCritical("All RabbitMQ connection attempts failed");
-                throw;
+                logger.LogInformation("Successfully connected to RabbitMQ");
             }
+            else
+            {
+                logger.LogWarning("Connection to RabbitMQ is not open");
+            }
+            return connection;
+        });
+    });
 
-            var delay = TimeSpan.FromSeconds(Math.Pow(2, retryCount)); // Exponential backoff
-            logger.LogInformation("Waiting {Delay} seconds before retrying...", delay.TotalSeconds);
-            Thread.Sleep(delay);
-        }
-    }
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? 
+    throw new InvalidOperationException("JWT secret not configured");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? 
+    throw new InvalidOperationException("JWT issuer not configured");
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? 
+    throw new InvalidOperationException("JWT audience not configured");
 
-    throw new Exception("Failed to connect to RabbitMQ after all retries");
-});
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtSecret)
+            ),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 
 // Add services to the container.
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IEventPublisher, RabbitMQEventPublisher>();
+builder.Services.AddScoped<IOrderService, OrderService.Services.OrderService>();
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(
@@ -114,6 +152,9 @@ builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenAnyIP(80); // Listen on port 80 inside container
 });
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
@@ -187,7 +228,16 @@ app.MapPost("/api/orders/test", async (AppDbContext dbContext, IConnection rabbi
         logger.LogInformation("Processing order request");
 
         // Create a test order
-        var order = new Order { ProductId = 1, Quantity = 2, Status = "Pending" };
+        var order = new Order 
+        { 
+            UserId = "test-user",
+            ProductId = "test-product",  // Changed to string
+            UnitPrice = 10.0m,
+            Quantity = 2,
+            TotalPrice = 20.0m,
+            Status = OrderStatus.Pending
+        };
+        
         dbContext.Orders.Add(order);
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Order {OrderId} saved to database", order.Id);
@@ -221,14 +271,19 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
 app.Run();
 
 public class RabbitMQHealthCheck : IHealthCheck
 {
-    private readonly Task<IConnection> _rabbitConnection;
+    private readonly IConnection _rabbitConnection;
     private readonly ILogger<RabbitMQHealthCheck> _logger;
 
-    public RabbitMQHealthCheck(Task<IConnection> rabbitConnection, ILogger<RabbitMQHealthCheck> logger)
+    public RabbitMQHealthCheck(IConnection rabbitConnection, ILogger<RabbitMQHealthCheck> logger)
     {
         _rabbitConnection = rabbitConnection;
         _logger = logger;
@@ -238,20 +293,22 @@ public class RabbitMQHealthCheck : IHealthCheck
     {
         try
         {
-            _logger.LogInformation("Checking RabbitMQ connection health...");
-            var connection = await _rabbitConnection;
-            
-            var isOpen = connection.IsOpen;
-            _logger.LogInformation("RabbitMQ connection status: {Status}", isOpen ? "Open" : "Closed");
-            
-            return isOpen 
-                ? HealthCheckResult.Healthy("RabbitMQ connection is open")
-                : HealthCheckResult.Unhealthy("RabbitMQ connection is closed");
+            if (_rabbitConnection.IsOpen)
+            {
+                using var channel = await _rabbitConnection.CreateChannelAsync();
+                var queueName = $"health_check_{Guid.NewGuid()}";
+                await channel.QueueDeclareAsync(queueName, false, true, true, null);
+                await channel.QueueDeleteAsync(queueName);
+
+                return HealthCheckResult.Healthy("RabbitMQ connection is healthy");
+            }
+
+            return HealthCheckResult.Unhealthy("RabbitMQ connection is closed");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "RabbitMQ health check failed");
-            return HealthCheckResult.Unhealthy("RabbitMQ connection failed", ex);
+            return HealthCheckResult.Unhealthy("RabbitMQ health check failed", ex);
         }
     }
 }
